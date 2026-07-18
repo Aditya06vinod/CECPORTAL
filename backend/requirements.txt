@@ -1,0 +1,18 @@
+# CEC Student Portal — Flask Backend Dependencies
+# Install with:  pip install -r requirements.txt
+
+# Web framework
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# Environment variable loading
+python-dotenv>=1.0.0
+
+# Google GenAI (Gemini & Gemma)
+google-genai>=1.0.0
+
+# HTTP client (used for OpenAI ChatGPT calls)
+requests>=2.31.0
+
+# Production WSGI server (optional, use instead of Flask dev server)
+gunicorn>=21.0.0

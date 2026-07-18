@@ -1,0 +1,158 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Geist:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #6d28d9;
+  --color-primary-container: #ede9fe;
+  --color-primary-fixed: #ddd6fe;
+  --color-primary-fixed-dim: #c4b5fd;
+  --color-on-primary-fixed: #2e1065;
+
+  --color-secondary: #8b5cf6;
+  --color-secondary-container: #f3e8ff;
+  --color-secondary-fixed: #f5f3ff;
+  --color-secondary-fixed-dim: #e9d5ff;
+  --color-on-secondary-container: #581c87;
+
+  --color-background: #faf9ff;
+  --color-on-background: #1b1330;
+
+  --color-surface: #ffffff;
+  --color-surface-dim: #e9e5f7;
+  --color-surface-bright: #ffffff;
+
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f7f4ff;
+  --color-surface-container: #f1edff;
+  --color-surface-container-high: #ebe5ff;
+  --color-surface-container-highest: #e3dcff;
+
+  --color-on-surface: #1b1330;
+  --color-on-surface-variant: #5f5a73;
+
+  --color-inverse-surface: #241b3a;
+  --color-inverse-on-surface: #faf9ff;
+
+  --color-outline: #9a93b4;
+  --color-outline-variant: #ddd8ef;
+
+  --color-surface-tint: #6d28d9;
+  --color-surface-variant: #ebe5ff;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-headline: "Geist", system-ui, -apple-system, sans-serif;
+}
+.dark {
+  --color-white: #0d0b18;
+
+  /* Primary */
+  --color-primary: #8b5cf6;
+  --color-primary-container: #4c1d95;
+  --color-primary-fixed: #6d28d9;
+  --color-primary-fixed-dim: #a78bfa;
+  --color-on-primary-fixed: #ffffff;
+
+  /* Secondary */
+  --color-secondary: #c084fc;
+  --color-secondary-container: #3b1d5c;
+  --color-secondary-fixed: #e9d5ff;
+  --color-secondary-fixed-dim: #d8b4fe;
+  --color-on-secondary-container: #e9d5ff;
+
+  /* Background */
+  --color-background: #070510;
+  --color-on-background: #f8f7ff;
+
+  /* Surfaces */
+  --color-surface: #0e0b1a;
+  --color-surface-dim: #070510;
+  --color-surface-bright: #1a1630;
+
+  --color-surface-container-lowest: #0c0918;
+  --color-surface-container-low: #131024;
+  --color-surface-container: #1b1730;
+  --color-surface-container-high: #262046;
+  --color-surface-container-highest: #342c5d;
+
+  /* Text */
+  --color-on-surface: #f8f7ff;
+  --color-on-surface-variant: #c9c4dc;
+
+  --color-inverse-surface: #f8f7ff;
+  --color-inverse-on-surface: #070510;
+
+  /* Borders */
+  --color-outline: #5b5478;
+  --color-outline-variant: #2b2643;
+
+  /* Accents */
+  --color-surface-tint: #8b5cf6;
+  --color-surface-variant: #1a1630;
+
+  /* Status */
+  --color-error: #ef4444;
+  --color-error-container: #7f1d1d;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #fca5a5;
+
+  /* Slate Scale */
+  --color-slate-50: #0c0918;
+  --color-slate-100: #131024;
+  --color-slate-200: #1b1730;
+  --color-slate-300: #262046;
+  --color-slate-400: #342c5d;
+  --color-slate-500: #5b5478;
+  --color-slate-600: #c9c4dc;
+  --color-slate-700: #e2ddf3;
+  --color-slate-800: #f3f1fb;
+  --color-slate-900: #faf9ff;
+}
+.dark * {
+  scrollbar-color: rgba(96, 165, 250, 0.2) transparent;
+}
+
+/* Custom scrollbars and styling */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(30, 58, 138, 0.2) transparent;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+}
+
+.soft-shadow {
+  box-shadow: 0px 10px 25px -5px rgba(30, 58, 138, 0.05);
+}
+
+.ai-glow:focus-within {
+  box-shadow: 0 0 0 4px rgba(0, 108, 73, 0.15);
+}
+
+.pulse-soft {
+  animation: pulse-teal 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-teal {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.03);
+  }
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 24px;
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Remix: CEC Student Portal",
+  "description": "An interactive student portal for the College of Engineering Chengannur featuring a dynamic academic timeline, request tracking, and a server-side Gemini AI assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
