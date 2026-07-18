@@ -66,7 +66,7 @@ export default function App() {
   });
 
   // API Config State
-  const [apiProvider, setApiProvider] = useState<"gemini" | "gemma" | "chatgpt" | "ondevice">((() => {
+  const [apiProvider, setApiProvider] = useState<"gemini" | "gemma" | "gemma_local" | "chatgpt" | "ondevice">((() => {
     return (localStorage.getItem("cec_api_provider") as any) || "gemini";
   }));
   const [geminiApiKey, setGeminiApiKey] = useState<string>(() => {
@@ -77,6 +77,12 @@ export default function App() {
   });
   const [openaiApiKey, setOpenaiApiKey] = useState<string>(() => {
     return localStorage.getItem("cec_openai_api_key") || "";
+  });
+  const [localGemmaEndpoint, setLocalGemmaEndpoint] = useState<string>(() => {
+    return localStorage.getItem("cec_local_gemma_endpoint") || "http://localhost:11434/api/generate";
+  });
+  const [localGemmaModel, setLocalGemmaModel] = useState<string>(() => {
+    return localStorage.getItem("cec_local_gemma_model") || "gemma4:e4b";
   });
 
   // On-Device Gemma 4 E4B availability state
@@ -166,6 +172,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("cec_openai_api_key", openaiApiKey);
   }, [openaiApiKey]);
+
+  useEffect(() => {
+    localStorage.setItem("cec_local_gemma_endpoint", localGemmaEndpoint);
+  }, [localGemmaEndpoint]);
+
+  useEffect(() => {
+    localStorage.setItem("cec_local_gemma_model", localGemmaModel);
+  }, [localGemmaModel]);
 
   // Auth/Tab synchronization effect: ensure students cannot access admin, and vice-versa
   useEffect(() => {
@@ -423,7 +437,7 @@ export default function App() {
       return;
     }
 
-    // ── Cloud/backend path: Gemini / Gemma 4 / ChatGPT (via /api/chat serverless function) ──
+    // ── Cloud/backend path: Gemini / Gemma 4 / Local Gemma / ChatGPT (via /api/chat) ──
     try {
       const historyPayload = chatMessages.map((m) => ({
         role: m.role,
@@ -435,7 +449,9 @@ export default function App() {
           ? geminiApiKey
           : apiProvider === "gemma"
           ? gemmaApiKey || geminiApiKey
-          : openaiApiKey;
+          : apiProvider === "chatgpt"
+          ? openaiApiKey
+          : undefined;
 
       // Relative path: works in both dev (tsx server.ts serves Vite + API
       // together on one port) and production (same Express server serves
@@ -447,7 +463,9 @@ export default function App() {
           message: text,
           history: historyPayload,
           provider: apiProvider,
-          apiKey: activeKey
+          apiKey: activeKey,
+          localEndpoint: apiProvider === "gemma_local" ? localGemmaEndpoint : undefined,
+          localModel: apiProvider === "gemma_local" ? localGemmaModel : undefined
         })
       });
 
@@ -624,7 +642,7 @@ export default function App() {
                 <h4 className="text-xs font-black text-on-surface uppercase tracking-wider mb-3">
                   Select Active AI Engine
                 </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
                   {/* Gemini Card */}
                   <button
                     onClick={() => setApiProvider("gemini")}
@@ -665,6 +683,27 @@ export default function App() {
                     </div>
                     <span className="text-xs font-bold text-on-surface mb-0.5">Gemma 4 (Hosted)</span>
                     <span className="text-[10px] text-outline font-medium leading-tight">Gemma 26B MoE model via API.</span>
+                  </button>
+
+                  {/* Gemma 4 Card (Local Ollama) */}
+                  <button
+                    onClick={() => setApiProvider("gemma_local")}
+                    className={`flex flex-col items-start p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
+                      apiProvider === "gemma_local"
+                        ? "border-primary bg-primary/5 shadow-xs ring-2 ring-primary/20"
+                        : "border-outline-variant/60 bg-surface hover:bg-surface-container-low"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between w-full mb-3">
+                      <div className="p-2 rounded-xl bg-cyan-100 dark:bg-cyan-950 text-cyan-700 dark:text-cyan-300">
+                        <span className="material-symbols-outlined text-sm block">dns</span>
+                      </div>
+                      {apiProvider === "gemma_local" && (
+                        <span className="material-symbols-outlined text-sm text-primary font-bold">check_circle</span>
+                      )}
+                    </div>
+                    <span className="text-xs font-bold text-on-surface mb-0.5">Gemma 4 (Local)</span>
+                    <span className="text-[10px] text-outline font-medium leading-tight">Ollama gemma4:e4b on port 11434.</span>
                   </button>
 
                   {/* ChatGPT Card */}
@@ -785,133 +824,179 @@ export default function App() {
                   </div>
                 </div>
               ) : (
-                /* API Keys Configuration Forms (Gemini / Gemma 4 / ChatGPT) */
+                /* API Keys Configuration Forms (Gemini / Gemma 4 / ChatGPT / Local Ollama) */
                 <div className="space-y-5 mb-8">
                   <h4 className="text-xs font-black text-on-surface uppercase tracking-wider">
-                    Provider API Credentials
+                    {apiProvider === "gemma_local" ? "Local Model Configuration" : "Provider API Credentials"}
                   </h4>
 
-                {/* Gemini API Key */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                      Gemini API Key
-                    </label>
-                    <a
-                      href="https://aistudio.google.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
-                    >
-                      Get Key <span className="material-symbols-outlined text-[10px]">open_in_new</span>
-                    </a>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type={showGeminiKey ? "text" : "password"}
-                      value={geminiApiKey}
-                      onChange={(e) => setGeminiApiKey(e.target.value)}
-                      placeholder="Enter Gemini API Key (starts with AIza...)"
-                      className="w-full bg-surface-container-low border border-outline-variant/60 focus:border-primary rounded-xl pl-4 pr-12 py-3 text-xs font-mono focus:ring-2 focus:ring-primary/15 focus:outline-hidden text-on-surface"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowGeminiKey(!showGeminiKey)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer"
-                      title={showGeminiKey ? "Hide API Key" : "Show API Key"}
-                    >
-                      <span className="material-symbols-outlined text-sm block">
-                        {showGeminiKey ? "visibility_off" : "visibility"}
-                      </span>
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-outline">
-                    Google AI Studio key. Leave blank to run in mock fallback mode.
-                  </p>
-                </div>
+                  {/* Local Ollama Configuration */}
+                  {apiProvider === "gemma_local" && (
+                    <div className="p-5 rounded-2xl border bg-cyan-50 border-cyan-200 dark:bg-cyan-950/30 dark:border-cyan-800 space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                      <div className="flex items-start gap-3">
+                        <span className="material-symbols-outlined text-2xl mt-0.5 text-cyan-600">dns</span>
+                        <div className="flex-1">
+                          <p className="text-xs font-bold mb-1 text-cyan-800 dark:text-cyan-300">
+                            Connects to local Ollama instance
+                          </p>
+                          <p className="text-[10px] text-cyan-700 dark:text-cyan-400 font-medium leading-relaxed">
+                            To run the local Gemma 4 model, make sure Ollama is installed and running (<code className="bg-cyan-100 dark:bg-cyan-900/50 px-1 py-0.5 rounded font-mono text-[9px]">ollama run gemma4:e4b</code>).
+                          </p>
+                        </div>
+                      </div>
+                      <div className="space-y-3 pt-2 border-t border-cyan-200/40">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
+                            Ollama API Endpoint
+                          </label>
+                          <input
+                            type="text"
+                            value={localGemmaEndpoint}
+                            onChange={(e) => setLocalGemmaEndpoint(e.target.value)}
+                            placeholder="Enter Ollama API endpoint (e.g., http://localhost:11434/api/generate)"
+                            className="w-full bg-surface-container-low border border-outline-variant/60 focus:border-primary rounded-xl px-4 py-3 text-xs font-mono focus:ring-2 focus:ring-primary/15 focus:outline-hidden text-on-surface"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
+                            Ollama Model Name
+                          </label>
+                          <input
+                            type="text"
+                            value={localGemmaModel}
+                            onChange={(e) => setLocalGemmaModel(e.target.value)}
+                            placeholder="Enter Ollama model name (e.g., gemma4:e4b)"
+                            className="w-full bg-surface-container-low border border-outline-variant/60 focus:border-primary rounded-xl px-4 py-3 text-xs font-mono focus:ring-2 focus:ring-primary/15 focus:outline-hidden text-on-surface"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-                {/* Gemma 4 API Key */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                      Gemma 4 API Key
-                    </label>
-                    <a
-                      href="https://aistudio.google.com/"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
-                    >
-                      Get Key <span className="material-symbols-outlined text-[10px]">open_in_new</span>
-                    </a>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type={showGemmaKey ? "text" : "password"}
-                      value={gemmaApiKey}
-                      onChange={(e) => setGemmaApiKey(e.target.value)}
-                      placeholder="Enter Gemma 4 API Key (starts with AIza...)"
-                      className="w-full bg-surface-container-low border border-outline-variant/60 focus:border-primary rounded-xl pl-4 pr-12 py-3 text-xs font-mono focus:ring-2 focus:ring-primary/15 focus:outline-hidden text-on-surface"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowGemmaKey(!showGemmaKey)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer"
-                      title={showGemmaKey ? "Hide API Key" : "Show API Key"}
-                    >
-                      <span className="material-symbols-outlined text-sm block">
-                        {showGemmaKey ? "visibility_off" : "visibility"}
-                      </span>
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-outline">
-                    Google AI Studio key. Leave blank to inherit from Gemini API key or use mock mode.
-                  </p>
-                </div>
+                  {apiProvider !== "gemma_local" && (
+                    <>
+                      {/* Gemini API Key */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                            Gemini API Key
+                          </label>
+                          <a
+                            href="https://aistudio.google.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                          >
+                            Get Key <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                          </a>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type={showGeminiKey ? "text" : "password"}
+                            value={geminiApiKey}
+                            onChange={(e) => setGeminiApiKey(e.target.value)}
+                            placeholder="Enter Gemini API Key (starts with AIza...)"
+                            className="w-full bg-surface-container-low border border-outline-variant/60 focus:border-primary rounded-xl pl-4 pr-12 py-3 text-xs font-mono focus:ring-2 focus:ring-primary/15 focus:outline-hidden text-on-surface"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowGeminiKey(!showGeminiKey)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer"
+                            title={showGeminiKey ? "Hide API Key" : "Show API Key"}
+                          >
+                            <span className="material-symbols-outlined text-sm block">
+                              {showGeminiKey ? "visibility_off" : "visibility"}
+                            </span>
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-outline">
+                          Google AI Studio key. Leave blank to run in mock fallback mode.
+                        </p>
+                      </div>
 
+                      {/* Gemma 4 API Key */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                            Gemma 4 API Key
+                          </label>
+                          <a
+                            href="https://aistudio.google.com/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                          >
+                            Get Key <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                          </a>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type={showGemmaKey ? "text" : "password"}
+                            value={gemmaApiKey}
+                            onChange={(e) => setGemmaApiKey(e.target.value)}
+                            placeholder="Enter Gemma 4 API Key (starts with AIza...)"
+                            className="w-full bg-surface-container-low border border-outline-variant/60 focus:border-primary rounded-xl pl-4 pr-12 py-3 text-xs font-mono focus:ring-2 focus:ring-primary/15 focus:outline-hidden text-on-surface"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowGemmaKey(!showGemmaKey)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer"
+                            title={showGemmaKey ? "Hide API Key" : "Show API Key"}
+                          >
+                            <span className="material-symbols-outlined text-sm block">
+                              {showGemmaKey ? "visibility_off" : "visibility"}
+                            </span>
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-outline">
+                          Google AI Studio key. Leave blank to inherit from Gemini API key or use mock mode.
+                        </p>
+                      </div>
 
-                {/* OpenAI (ChatGPT) API Key */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between items-center">
-                    <label className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      OpenAI (ChatGPT) API Key
-                    </label>
-                    <a
-                      href="https://platform.openai.com/api-keys"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
-                    >
-                      Get Key <span className="material-symbols-outlined text-[10px]">open_in_new</span>
-                    </a>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type={showOpenaiKey ? "text" : "password"}
-                      value={openaiApiKey}
-                      onChange={(e) => setOpenaiApiKey(e.target.value)}
-                      placeholder="Enter OpenAI API Key (starts with sk-...)"
-                      className="w-full bg-surface-container-low border border-outline-variant/60 focus:border-primary rounded-xl pl-4 pr-12 py-3 text-xs font-mono focus:ring-2 focus:ring-primary/15 focus:outline-hidden text-on-surface"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowOpenaiKey(!showOpenaiKey)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer"
-                      title={showOpenaiKey ? "Hide API Key" : "Show API Key"}
-                    >
-                      <span className="material-symbols-outlined text-sm block">
-                        {showOpenaiKey ? "visibility_off" : "visibility"}
-                      </span>
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-outline">
-                    Required to connect to ChatGPT. Stored locally in your browser sandbox.
-                  </p>
+                      {/* OpenAI (ChatGPT) API Key */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <label className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            OpenAI (ChatGPT) API Key
+                          </label>
+                          <a
+                            href="https://platform.openai.com/api-keys"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                          >
+                            Get Key <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                          </a>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type={showOpenaiKey ? "text" : "password"}
+                            value={openaiApiKey}
+                            onChange={(e) => setOpenaiApiKey(e.target.value)}
+                            placeholder="Enter OpenAI API Key (starts with sk-...)"
+                            className="w-full bg-surface-container-low border border-outline-variant/60 focus:border-primary rounded-xl pl-4 pr-12 py-3 text-xs font-mono focus:ring-2 focus:ring-primary/15 focus:outline-hidden text-on-surface"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowOpenaiKey(!showOpenaiKey)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer"
+                            title={showOpenaiKey ? "Hide API Key" : "Show API Key"}
+                          >
+                            <span className="material-symbols-outlined text-sm block">
+                              {showOpenaiKey ? "visibility_off" : "visibility"}
+                            </span>
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-outline">
+                          Required to connect to ChatGPT. Stored locally in your browser sandbox.
+                        </p>
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
               )}
 
               {/* Status Indicator Bar (only shown for cloud key-based providers) */}

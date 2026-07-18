@@ -173,6 +173,40 @@ If a student asks a query, do your best to answer based on the info above. If it
       }
     }
 
+    // Handle Local Ollama (Gemma 4 Local)
+    if (targetProvider === "gemma_local") {
+      const ollamaUrl = req.body.localEndpoint || "http://localhost:11434/api/generate";
+      const ollamaModel = req.body.localModel || "gemma4:e4b";
+
+      try {
+        const conversationText = history && Array.isArray(history)
+          ? history.map((h: { role: string; content: string }) => `${h.role === "assistant" ? "Assistant" : "Student"}: ${h.content}`).join("\n")
+          : "";
+        const fullPrompt = `${CEC_GROUNDING_CONTEXT}\n\n${conversationText}\nStudent: ${message}\nAssistant:`;
+
+        const ollamaResponse = await fetch(ollamaUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            model: ollamaModel,
+            prompt: fullPrompt,
+            stream: false
+          })
+        });
+
+        if (!ollamaResponse.ok) {
+          throw new Error(`Ollama returned status ${ollamaResponse.status}`);
+        }
+
+        const data: any = await ollamaResponse.json();
+        const replyText = data.response ?? data.text ?? data.output ?? "No response from local Ollama.";
+        return res.json({ text: replyText });
+      } catch (err: any) {
+        console.error("Local Ollama error:", err);
+        return res.status(500).json({ error: `Failed to communicate with local Ollama: ${err.message}. Make sure Ollama is running.` });
+      }
+    }
+
     // Handle Google Gemini / Gemma
     const googleKey = userApiKey || process.env.GEMINI_API_KEY;
     if (!googleKey || googleKey === "MY_GEMINI_API_KEY") {
