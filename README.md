@@ -56,7 +56,16 @@ Upload your demo video to Google Drive and paste the shareable link here(max 3 m
 
 ## Installation Steps
 
-### 1. Backend Setup (Flask)
+### 1. Standalone Backend Setup (Node.js/Express - Recommended)
+```bash
+cd backend
+npm install
+cp .env.example .env # Add your GEMINI_API_KEY
+npm run dev # Runs on port 5000
+```
+
+*Alternatively, you can run the Flask backend:*
+### 1b. Backend Setup (Flask)
 ```bash
 cd backend
 python -m venv venv
@@ -71,7 +80,7 @@ python run.py # Runs on port 5000
 Open a second terminal in the project root:
 ```bash
 npm install
-npm run dev # Runs on port 5173, proxies /api to Flask
+npm run dev # Runs on port 5173, proxies /api to port 5000
 ```
 
 ### 3. On-Device AI Setup (Optional)

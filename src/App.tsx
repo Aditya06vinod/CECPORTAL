@@ -423,63 +423,19 @@ export default function App() {
       return;
     }
 
-    // ── Local Gemma server path: hits http://localhost:8000/api/generate directly ──
-    if (apiProvider === "gemma") {
-      const CEC_SYSTEM_PROMPT = `You are the "CEC Portal Intelligent Assistant", an AI helper integrated into the official student portal of the College of Engineering Chengannur (CEC), Kerala, India. You help students with academic resources, syllabus, hostel, and placement queries. Be helpful and concise.`;
-
-      const conversationText = nextMessages
-        .map((m) => `${m.role === "assistant" ? "Assistant" : "Student"}: ${m.content}`)
-        .join("\n");
-      const fullPrompt = `${CEC_SYSTEM_PROMPT}\n\n${conversationText}\nAssistant:`;
-
-      try {
-        const res = await fetch(LOCAL_GEMMA_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            model: LOCAL_GEMMA_MODEL,
-            prompt: fullPrompt,
-            stream: false
-          })
-        });
-
-        if (!res.ok) throw new Error("HTTP error " + res.status);
-
-        const data = await res.json();
-        // Ollama-style /api/generate returns { response: "..." } — adjust if your local server differs
-        const replyText: string =
-          data.response ?? data.text ?? data.output ?? "No response received from local Gemma server.";
-
-        const assistantMsg: ChatMessage = {
-          id: `ai-${Date.now()}`,
-          role: "assistant",
-          content: replyText,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-        };
-        setChatMessages((prev) => [...prev, assistantMsg]);
-      } catch (err: any) {
-        console.error("Local Gemma fetch failed:", err);
-        const errorMsg: ChatMessage = {
-          id: `ai-err-${Date.now()}`,
-          role: "assistant",
-          content: `⚠️ Couldn't reach the local Gemma server at ${LOCAL_GEMMA_ENDPOINT}. Make sure it's running and, if needed, CORS-enabled for this origin.`,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-        };
-        setChatMessages((prev) => [...prev, errorMsg]);
-      } finally {
-        setIsGenerating(false);
-      }
-      return;
-    }
-
-    // ── Cloud/backend path: Gemini / ChatGPT (via /api/chat serverless function) ──
+    // ── Cloud/backend path: Gemini / Gemma 4 / ChatGPT (via /api/chat serverless function) ──
     try {
       const historyPayload = chatMessages.map((m) => ({
         role: m.role,
         content: m.content
       }));
 
-      const activeKey = apiProvider === "gemini" ? geminiApiKey : openaiApiKey;
+      const activeKey =
+        apiProvider === "gemini"
+          ? geminiApiKey
+          : apiProvider === "gemma"
+          ? gemmaApiKey || geminiApiKey
+          : openaiApiKey;
 
       // Relative path: works in both dev (tsx server.ts serves Vite + API
       // together on one port) and production (same Express server serves
@@ -690,7 +646,7 @@ export default function App() {
                     <span className="text-[10px] text-outline font-medium leading-tight">Gemini 2.5 Flash via API.</span>
                   </button>
 
-                  {/* Gemma Card (local server) */}
+                  {/* Gemma 4 Card (Hosted via API Key) */}
                   <button
                     onClick={() => setApiProvider("gemma")}
                     className={`flex flex-col items-start p-4 rounded-2xl border text-left transition-all cursor-pointer relative overflow-hidden select-none ${
@@ -707,8 +663,8 @@ export default function App() {
                         <span className="material-symbols-outlined text-sm text-primary font-bold">check_circle</span>
                       )}
                     </div>
-                    <span className="text-xs font-bold text-on-surface mb-0.5">Gemma (Local)</span>
-                    <span className="text-[10px] text-outline font-medium leading-tight">localhost:8000/api/generate</span>
+                    <span className="text-xs font-bold text-on-surface mb-0.5">Gemma 4 (Hosted)</span>
+                    <span className="text-[10px] text-outline font-medium leading-tight">Gemma 26B MoE model via API.</span>
                   </button>
 
                   {/* ChatGPT Card */}
@@ -828,46 +784,8 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-              ) : apiProvider === "gemma" ? (
-                /* Local Gemma Server Info Panel */
-                <div className="mb-8 space-y-4">
-                  <h4 className="text-xs font-black text-on-surface uppercase tracking-wider">
-                    Local Gemma Server
-                  </h4>
-                  <div className="p-5 rounded-2xl border bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
-                    <div className="flex items-start gap-3">
-                      <span className="material-symbols-outlined text-2xl mt-0.5 text-blue-600">dns</span>
-                      <div className="flex-1">
-                        <p className="text-xs font-bold mb-1 text-blue-800 dark:text-blue-300">
-                          Connects directly to your local Gemma server
-                        </p>
-                        <p className="text-[10px] text-blue-700 dark:text-blue-400 font-medium leading-relaxed">
-                          Requests are sent to{" "}
-                          <code className="bg-blue-100 dark:bg-blue-900/50 px-1 py-0.5 rounded text-[9px] font-mono">
-                            {LOCAL_GEMMA_ENDPOINT}
-                          </code>{" "}
-                          using model <strong>{LOCAL_GEMMA_MODEL}</strong>. Make sure your local server (e.g. Ollama or llama.cpp)
-                          is running on port 8000 and, if needed, has CORS enabled for this origin. No API key is required.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {[
-                      { icon: "lock", label: "100% Private", desc: "Stays on your network" },
-                      { icon: "bolt", label: "No API Key", desc: "Zero cost, zero setup" },
-                      { icon: "speed", label: "Local Speed", desc: "No cloud round-trip" }
-                    ].map((f) => (
-                      <div key={f.label} className="p-3 bg-surface-container-low border border-outline-variant/20 rounded-xl text-center">
-                        <span className="material-symbols-outlined text-secondary text-base block mb-1">{f.icon}</span>
-                        <p className="text-[10px] font-bold text-on-surface">{f.label}</p>
-                        <p className="text-[9px] text-outline font-medium leading-tight mt-0.5">{f.desc}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
               ) : (
-                /* API Keys Configuration Forms (Gemini / ChatGPT) */
+                /* API Keys Configuration Forms (Gemini / Gemma 4 / ChatGPT) */
                 <div className="space-y-5 mb-8">
                   <h4 className="text-xs font-black text-on-surface uppercase tracking-wider">
                     Provider API Credentials
@@ -913,6 +831,47 @@ export default function App() {
                   </p>
                 </div>
 
+                {/* Gemma 4 API Key */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-xs font-bold text-on-surface-variant flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                      Gemma 4 API Key
+                    </label>
+                    <a
+                      href="https://aistudio.google.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] font-bold text-primary hover:underline flex items-center gap-0.5"
+                    >
+                      Get Key <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                    </a>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showGemmaKey ? "text" : "password"}
+                      value={gemmaApiKey}
+                      onChange={(e) => setGemmaApiKey(e.target.value)}
+                      placeholder="Enter Gemma 4 API Key (starts with AIza...)"
+                      className="w-full bg-surface-container-low border border-outline-variant/60 focus:border-primary rounded-xl pl-4 pr-12 py-3 text-xs font-mono focus:ring-2 focus:ring-primary/15 focus:outline-hidden text-on-surface"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGemmaKey(!showGemmaKey)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-outline hover:text-primary transition-colors cursor-pointer"
+                      title={showGemmaKey ? "Hide API Key" : "Show API Key"}
+                    >
+                      <span className="material-symbols-outlined text-sm block">
+                        {showGemmaKey ? "visibility_off" : "visibility"}
+                      </span>
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-outline">
+                    Google AI Studio key. Leave blank to inherit from Gemini API key or use mock mode.
+                  </p>
+                </div>
+
+
                 {/* OpenAI (ChatGPT) API Key */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
@@ -956,11 +915,12 @@ export default function App() {
               )}
 
               {/* Status Indicator Bar (only shown for cloud key-based providers) */}
-              {(apiProvider === "gemini" || apiProvider === "chatgpt") && (
+              {(apiProvider === "gemini" || apiProvider === "gemma" || apiProvider === "chatgpt") && (
               <div className="p-4 rounded-2xl bg-surface-container-low border border-outline-variant/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
                 <div className="flex items-center gap-2">
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
                     (apiProvider === "gemini" && geminiApiKey) ||
+                    (apiProvider === "gemma" && (gemmaApiKey || geminiApiKey)) ||
                     (apiProvider === "chatgpt" && openaiApiKey)
                       ? "bg-emerald-500 animate-pulse"
                       : "bg-amber-400"
@@ -968,10 +928,13 @@ export default function App() {
                   <div>
                     <p className="text-xs font-bold text-on-surface">
                       Status: {
-                        ((apiProvider === "gemini" && geminiApiKey) ||
-                         (apiProvider === "chatgpt" && openaiApiKey))
-                          ? `Connected via custom ${apiProvider.toUpperCase()} Key`
-                          : `Offline (Simulated fallback responses)`
+                        apiProvider === "gemini" && geminiApiKey
+                          ? "Connected to Google Gemini"
+                          : apiProvider === "gemma" && (gemmaApiKey || geminiApiKey)
+                          ? "Connected to Gemma 4 (Hosted)"
+                          : apiProvider === "chatgpt" && openaiApiKey
+                          ? "Connected to OpenAI ChatGPT"
+                          : "Offline (Simulated fallback responses)"
                       }
                     </p>
                     <p className="text-[9px] text-outline font-medium mt-0.5">
@@ -981,10 +944,12 @@ export default function App() {
                 </div>
                 <div className="flex gap-2">
                   {((apiProvider === "gemini" && geminiApiKey) ||
+                    (apiProvider === "gemma" && gemmaApiKey) ||
                     (apiProvider === "chatgpt" && openaiApiKey)) && (
                     <button
                       onClick={() => {
                         if (apiProvider === "gemini") setGeminiApiKey("");
+                        else if (apiProvider === "gemma") setGemmaApiKey("");
                         else if (apiProvider === "chatgpt") setOpenaiApiKey("");
                       }}
                       className="px-2.5 py-1 text-[10px] font-bold text-error border border-error/20 bg-error/5 hover:bg-error/10 hover:border-error rounded-lg cursor-pointer transition-all"
