@@ -34,6 +34,27 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Basic CORS so the frontend can call this server from any dev origin
+  app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    if (req.method === "OPTIONS") return res.sendStatus(200);
+    next();
+  });
+
+  // Health-check endpoint
+  app.get("/api/health", (_req, res) => {
+    res.json({
+      status: "ok",
+      backend: "node-express",
+      environmentKeys: {
+        gemini: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY"),
+        openai: Boolean(process.env.OPENAI_API_KEY),
+      },
+    });
+  });
+
   // Grounding Context for CEC (College of Engineering Chengannur)
   const CEC_GROUNDING_CONTEXT = `
 You are the "CEC Portal Intelligent Assistant", an AI helper integrated into the official student portal of the College of Engineering Chengannur (CEC), Kerala, India.
@@ -200,8 +221,12 @@ If a student asks a query, do your best to answer based on the info above. If it
         parts: [{ text: message }],
       });
 
-      // Determine model based on provider choice
-      const selectedModel = targetProvider === "gemma" ? "gemma-2-27b-it" : "gemini-2.5-flash";
+      // Determine model based on provider choice.
+      // Gemma 4 is hosted on the Gemini API under these two IDs only
+      // (E2B/E4B on-device sizes aren't exposed via the hosted API):
+      //   gemma-4-26b-a4b-it  (26B Mixture-of-Experts, ~4B active params)
+      //   gemma-4-31b-it      (31B dense)
+      const selectedModel = targetProvider === "gemma" ? "gemma-4-26b-a4b-it" : "gemini-2.5-flash";
 
       const response = await requestAi.models.generateContent({
         model: selectedModel,

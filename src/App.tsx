@@ -481,7 +481,10 @@ export default function App() {
 
       const activeKey = apiProvider === "gemini" ? geminiApiKey : openaiApiKey;
 
-      const res = await fetch("http://localhost:8000/api/generate" , {
+      // Relative path: works in both dev (tsx server.ts serves Vite + API
+      // together on one port) and production (same Express server serves
+      // the built dist/ and /api/chat).
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
