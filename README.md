@@ -27,7 +27,7 @@ CEC Portal is a modern, unified dashboard built for the students of College of E
 
 ### How Google AI Was Used
 
-Google AI is the core intelligence engine of the CEC Portal. We integrated the Google GenAI SDK in our Flask backend to route conversational queries to either **Gemini 2.5 Flash** (for general, fast reasoning) or **Gemma 2 27B** (for lightweight, specialized tasks). 
+Google AI is the core intelligence engine of the CEC Portal. We integrated the Google GenAI SDK in our Flask backend to route conversational queries to either **Gemini 2.5 Flash** (for general, fast reasoning) or **Gemma 4** (for lightweight, specialized tasks). 
 
 Furthermore, we heavily utilized Chrome's native **On-Device AI capabilities**. By leveraging the `window.ai.languageModel` API, we run **Gemma 4 E4B** directly in the browser's sandbox using the device's NPU/GPU. This allows the student portal assistant to function 100% locally and privately, requiring no backend API keys or internet connection once the model is downloaded.
 
